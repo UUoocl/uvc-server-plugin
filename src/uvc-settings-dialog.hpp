@@ -25,7 +25,7 @@ private slots:
 
 private:
 	void SetupUI();
-	
+
 	QVBoxLayout *deviceListLayout;
 	QTextEdit *logConsole;
 	struct DeviceWidget {

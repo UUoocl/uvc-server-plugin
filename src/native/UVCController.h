@@ -36,23 +36,22 @@
   version of the UVC specification implemented; and the control enablement bit
   vectors are all explored and retained when available.
 */
-@interface UVCController : NSObject
-{
-  NSString                      *_deviceName;
-  UInt32                        _locationId;
-  UInt16                        _vendorId, _productId;
-  
-  // All necessary functionality comes from USB standard 2.2.0:
-  IOUSBInterfaceInterface220    **_controllerInterface;
-  
-  BOOL                          _isInterfaceOpen;
-  BOOL                          _shouldNotCloseInterface;
-  uint8_t                       _videoInterfaceIndex;
-  NSMutableDictionary           *_controls;
-  NSMutableDictionary           *_unitIds;
-  UInt16                        _uvcVersion;
-  NSData                        *_terminalControlsAvailable;
-  NSData                        *_processingUnitControlsAvailable;
+@interface UVCController : NSObject {
+    NSString *_deviceName;
+    UInt32 _locationId;
+    UInt16 _vendorId, _productId;
+
+    // All necessary functionality comes from USB standard 2.2.0:
+    IOUSBInterfaceInterface220 **_controllerInterface;
+
+    BOOL _isInterfaceOpen;
+    BOOL _shouldNotCloseInterface;
+    uint8_t _videoInterfaceIndex;
+    NSMutableDictionary *_controls;
+    NSMutableDictionary *_unitIds;
+    UInt16 _uvcVersion;
+    NSData *_terminalControlsAvailable;
+    NSData *_processingUnitControlsAvailable;
 }
 
 /*!
@@ -62,7 +61,7 @@
   Returns an NSArray containing all such devices, or nil if no devices were
   present.
 */
-+ (NSArray*) uvcControllers;
++ (NSArray *)uvcControllers;
 
 /*!
   @method uvcControllerWithService:
@@ -73,7 +72,7 @@
 
   If the device referenced by ioService is not UVC-compliant, nil is returned.
 */
-+ (id) uvcControllerWithService:(io_service_t)ioService;
++ (id)uvcControllerWithService:(io_service_t)ioService;
 
 /*!
   @method uvcControllerWithLocationId:
@@ -84,7 +83,7 @@
 
   Note that the locationID should uniquely identify a single device.
 */
-+ (id) uvcControllerWithLocationId:(UInt32)locationId;
++ (id)uvcControllerWithLocationId:(UInt32)locationId;
 
 /*!
   @method uvcControllerWithVendorId:productId:
@@ -98,35 +97,35 @@
   uvcControllers method should be used to retrieve an array of all UVC-compliant
   devices.
 */
-+ (id) uvcControllerWithVendorId:(UInt16)vendorId productId:(UInt16)productId;
++ (id)uvcControllerWithVendorId:(UInt16)vendorId productId:(UInt16)productId;
 
 /*!
   @method deviceName
 
   Returns the name of the USB device.
 */
-- (NSString*) deviceName;
+- (NSString *)deviceName;
 
 /*!
   @method locationId
 
   Returns the 32-bit USB locationId of the device on this system.
 */
-- (UInt32) locationId;
+- (UInt32)locationId;
 
 /*!
   @method vendorId
 
   Returns the 16-bit USB vendor identifier for the device.
 */
-- (UInt16) vendorId;
+- (UInt16)vendorId;
 
 /*!
   @method productId
 
   Returns the 16-bit USB product identifier for the device.
 */
-- (UInt16) productId;
+- (UInt16)productId;
 
 /*!
   @method uvcVersion
@@ -134,7 +133,7 @@
   Returns the version of the UVC specification which the device
   implements (as a binary-coded decimal value, e.g. 0x0210 = 2.10).
 */
-- (UInt16) uvcVersion;
+- (UInt16)uvcVersion;
 
 /*!
   @method isInterfaceOpen
@@ -142,28 +141,28 @@
   Returns YES if the device interface is open.  The interface must be
   open in order to send/receive control requests.
 */
-- (BOOL) isInterfaceOpen;
+- (BOOL)isInterfaceOpen;
 
 /*!
   @method setIsInterfaceOpen:
 
   Force the device interface into an open- or closed-state.
 */
-- (void) setIsInterfaceOpen:(BOOL)isInterfaceOpen;
+- (void)setIsInterfaceOpen:(BOOL)isInterfaceOpen;
 
 /*!
   @method controlStrings
 
   Returns the array of all control names to which this class responds.
 */
-+ (NSArray*) controlStrings;
++ (NSArray *)controlStrings;
 
 /*!
   @method controlStrings
 
   Returns the array of all control names to which this class responds.
 */
-- (NSArray*) controlStrings;
+- (NSArray *)controlStrings;
 
 /*!
   @method controlWithName:
@@ -176,7 +175,7 @@
   information) a new UVCControl object is instantiated.  If successfully
   instantiated, the new control is cached and returned to the caller.
 */
-- (UVCControl*) controlWithName:(NSString*)controlName;
+- (UVCControl *)controlWithName:(NSString *)controlName;
 
 @end
 
@@ -196,15 +195,14 @@ typedef NSUInteger uvc_capabilities_t;
   has available.  Each control is represented by an instance of the UVCControl
   class, which abstracts the control meta-data and interaction with the control.
 */
-@interface UVCControl : NSObject
-{
-  UVCController       *_parentController;
-  NSUInteger          _controlIndex;
-  NSString            *_controlName;
-  uvc_capabilities_t  _capabilities;
-  UVCValue            *_currentValue;
-  UVCValue            *_minimum, *_maximum, *_stepSize;
-  UVCValue            *_defaultValue;
+@interface UVCControl : NSObject {
+    UVCController *_parentController;
+    NSUInteger _controlIndex;
+    NSString *_controlName;
+    uvc_capabilities_t _capabilities;
+    UVCValue *_currentValue;
+    UVCValue *_minimum, *_maximum, *_stepSize;
+    UVCValue *_defaultValue;
 }
 
 /*!
@@ -212,21 +210,21 @@ typedef NSUInteger uvc_capabilities_t;
 
   Returns YES if the value of this control can be read.
 */
-- (BOOL) supportsGetValue;
+- (BOOL)supportsGetValue;
 
 /*!
   @method supportsSetValue
 
   Returns YES if the value of this control can be modified.
 */
-- (BOOL) supportsSetValue;
+- (BOOL)supportsSetValue;
 
 /*!
   @method hasRange
 
   Returns YES if this control provides a range for its values.
 */
-- (BOOL) hasRange;
+- (BOOL)hasRange;
 
 /*!
   @method hasStepSize
@@ -234,14 +232,14 @@ typedef NSUInteger uvc_capabilities_t;
   Returns YES if this control provides a step-size (resolution)
   for its values.
 */
-- (BOOL) hasStepSize;
+- (BOOL)hasStepSize;
 
 /*!
   @method hasDefaultValue
 
   Returns YES if this control provides a default value.
 */
-- (BOOL) hasDefaultValue;
+- (BOOL)hasDefaultValue;
 
 /*!
   @method controlName
@@ -249,7 +247,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns the textual name of the control.  This is the same string used
   to reference the control is the controlWithName: method of UVCController.
 */
-- (NSString*) controlName;
+- (NSString *)controlName;
 
 /*!
   @method currentValue
@@ -262,7 +260,7 @@ typedef NSUInteger uvc_capabilities_t;
   
   The return
 */
-- (UVCValue*) currentValue;
+- (UVCValue *)currentValue;
 
 /*!
   @method minimum
@@ -270,7 +268,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns the minimum value(s) provided by the device for the receiver control
   or nil if the device provided no minimum.
 */
-- (UVCValue*) minimum;
+- (UVCValue *)minimum;
 
 /*!
   @method maximum
@@ -278,7 +276,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns the maximum value(s) provided by the device for the receiver control
   or nil if the device provided no maximum.
 */
-- (UVCValue*) maximum;
+- (UVCValue *)maximum;
 
 /*!
   @method stepSize
@@ -286,7 +284,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns the step size (resolution) value(s) provided by the device for the
   receiver control or nil if the device provided no step size.
 */
-- (UVCValue*) stepSize;
+- (UVCValue *)stepSize;
 
 /*!
   @method defaultValue
@@ -294,7 +292,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns the default value(s) provided by the device for the receiver control
   or nil if the device provided no defaults.
 */
-- (UVCValue*) defaultValue;
+- (UVCValue *)defaultValue;
 
 /*!
   @method resetToDefaultValue
@@ -305,7 +303,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns YES if a default value was present and was successfully written to
   the device.
 */
-- (BOOL) resetToDefaultValue;
+- (BOOL)resetToDefaultValue;
 
 /*!
   @method setCurrentValueFromCString:flags:
@@ -316,7 +314,7 @@ typedef NSUInteger uvc_capabilities_t;
   
   Returns YES if currentValue was successfully set.
 */
-- (BOOL) setCurrentValueFromCString:(const char*)cString flags:(UVCTypeScanFlags)flags;
+- (BOOL)setCurrentValueFromCString:(const char *)cString flags:(UVCTypeScanFlags)flags;
 
 /*!
   @method readIntoCurrentValue
@@ -327,7 +325,7 @@ typedef NSUInteger uvc_capabilities_t;
   
   Returns YES if successful.
 */
-- (BOOL) readIntoCurrentValue;
+- (BOOL)readIntoCurrentValue;
 
 /*!
   @method writeFromCurrentValue
@@ -339,7 +337,7 @@ typedef NSUInteger uvc_capabilities_t;
   
   Returns YES if successful.
 */
-- (BOOL) writeFromCurrentValue;
+- (BOOL)writeFromCurrentValue;
 
 /*!
   @method summaryString
@@ -347,7 +345,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns an autorelease string that summarizes the structure and attributes of
   the receiver control; should be adequately human-readable.
 */
-- (NSString*) summaryString;
+- (NSString *)summaryString;
 
 /*!
   @method summaryDictionary
@@ -355,7 +353,7 @@ typedef NSUInteger uvc_capabilities_t;
   Returns a dictionary that summarizes the structure and attributes of
   the receiver control.
 */
-- (NSDictionary*) summaryDictionary;
+- (NSDictionary *)summaryDictionary;
 
 @end
 

@@ -17,7 +17,7 @@ struct UvcDevice {
 	int vendor_id = 0;
 	int product_id = 0;
 	bool enabled = false;
-	
+
 	// Internal identifier for native lib
 	unsigned int nativeIndex = 0;
 	bool isOpened = false;
@@ -34,7 +34,7 @@ public:
 	void RefreshDevices();
 	std::vector<UvcDevicePtr> GetDevices();
 	void SetDeviceEnabled(const std::string &name, bool enabled);
-	
+
 	void LoadConfig();
 	void SaveConfig();
 
@@ -43,13 +43,13 @@ public:
 	void SetZoom(const std::string &deviceName, int zoom);
 	void BroadcastCapabilities(const std::string &deviceName);
 	void SyncAck(const std::string &deviceName);
-	
+
 	// Polling control
 	void SetPollingRate(int fps);
-	
+
 	bool IsLoggingEnabled() const { return loggingEnabled; }
 	void SetLoggingEnabled(bool enabled) { loggingEnabled = enabled; }
-	
+
 	bool ShouldStartWithObs() const { return startWithObs; }
 	void SetStartWithObs(bool enabled) { startWithObs = enabled; }
 
@@ -63,11 +63,11 @@ private:
 
 	std::vector<UvcDevicePtr> devices;
 	std::recursive_mutex devicesMutex;
-	
+
 	std::thread pollingThread;
 	std::atomic<bool> stopPolling{false};
 	std::atomic<int> pollingIntervalMs{100}; // Default 10 FPS
-	
+
 	bool loggingEnabled = true;
 	bool logCollapsed = false;
 	bool startWithObs = false;

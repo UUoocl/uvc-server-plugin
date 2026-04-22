@@ -21,7 +21,7 @@ void HandleMessageToBridge(obs_data_t *packet)
 	calldata_set_ptr(&cd, "packet", packet);
 	signal_handler_signal(sh, "media_warp_transmit", &cd);
 	calldata_free(&cd);
-	
+
 	// blog(LOG_DEBUG, "[UVC Server] Signal 'media_warp_transmit' emitted");
 }
 
@@ -30,10 +30,12 @@ static void on_media_warp_receive(void *data, calldata_t *cd)
 {
 	(void)data;
 	const char *json_str = calldata_string(cd, "json_str");
-	if (!json_str) return;
+	if (!json_str)
+		return;
 
 	obs_data_t *msg = obs_data_create_from_json(json_str);
-	if (!msg) return;
+	if (!msg)
+		return;
 
 	const char *a = obs_data_get_string(msg, "a");
 	if (a) {
@@ -41,20 +43,24 @@ static void on_media_warp_receive(void *data, calldata_t *cd)
 			const char *deviceName = obs_data_get_string(msg, "device");
 			int pan = (int)obs_data_get_int(msg, "pan");
 			int tilt = (int)obs_data_get_int(msg, "tilt");
-			blog(LOG_INFO, "[UVC Server] Inbound PTZ: %s -> %d, %d", deviceName ? deviceName : "null", pan, tilt);
-			if (deviceName) GetUvcManager().SetPanTilt(deviceName, pan, tilt);
+			blog(LOG_INFO, "[UVC Server] Inbound PTZ: %s -> %d, %d", deviceName ? deviceName : "null", pan,
+			     tilt);
+			if (deviceName)
+				GetUvcManager().SetPanTilt(deviceName, pan, tilt);
 		} else if (strcmp(a, "uvc_set_zoom") == 0) {
 			const char *deviceName = obs_data_get_string(msg, "device");
 			int zoom = (int)obs_data_get_int(msg, "zoom");
 			blog(LOG_INFO, "[UVC Server] Inbound Zoom: %s -> %d", deviceName ? deviceName : "null", zoom);
-			if (deviceName) GetUvcManager().SetZoom(deviceName, zoom);
+			if (deviceName)
+				GetUvcManager().SetZoom(deviceName, zoom);
 		} else if (strcmp(a, "uvc_set_polling") == 0) {
 			int fps = (int)obs_data_get_int(msg, "fps");
 			blog(LOG_INFO, "[UVC Server] Inbound Polling: %d FPS", fps);
 			GetUvcManager().SetPollingRate(fps);
 		} else if (strcmp(a, "uvc_sync_ack") == 0) {
 			const char *deviceName = obs_data_get_string(msg, "device");
-			if (deviceName) GetUvcManager().SyncAck(deviceName);
+			if (deviceName)
+				GetUvcManager().SyncAck(deviceName);
 		}
 	}
 

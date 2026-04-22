@@ -20,21 +20,21 @@
   interfaces.
 */
 typedef enum {
-  kUVCTypeComponentTypeInvalid   = 0,
-  kUVCTypeComponentTypeBoolean,
-  kUVCTypeComponentTypeSInt8,
-  kUVCTypeComponentTypeUInt8,
-  kUVCTypeComponentTypeBitmap8,
-  kUVCTypeComponentTypeSInt16,
-  kUVCTypeComponentTypeUInt16,
-  kUVCTypeComponentTypeBitmap16,
-  kUVCTypeComponentTypeSInt32,
-  kUVCTypeComponentTypeUInt32,
-  kUVCTypeComponentTypeBitmap32,
-  kUVCTypeComponentTypeSInt64,
-  kUVCTypeComponentTypeUInt64,
-  kUVCTypeComponentTypeBitmap64,
-  kUVCTypeComponentTypeMax
+    kUVCTypeComponentTypeInvalid = 0,
+    kUVCTypeComponentTypeBoolean,
+    kUVCTypeComponentTypeSInt8,
+    kUVCTypeComponentTypeUInt8,
+    kUVCTypeComponentTypeBitmap8,
+    kUVCTypeComponentTypeSInt16,
+    kUVCTypeComponentTypeUInt16,
+    kUVCTypeComponentTypeBitmap16,
+    kUVCTypeComponentTypeSInt32,
+    kUVCTypeComponentTypeUInt32,
+    kUVCTypeComponentTypeBitmap32,
+    kUVCTypeComponentTypeSInt64,
+    kUVCTypeComponentTypeUInt64,
+    kUVCTypeComponentTypeBitmap64,
+    kUVCTypeComponentTypeMax
 } UVCTypeComponentType;
 
 /*!
@@ -65,8 +65,8 @@ NSUInteger UVCTypeComponentByteSize(UVCTypeComponentType componentType);
   as the cString is processed (more like debugging information). 
 */
 typedef enum {
-  kUVCTypeScanFlagShowWarnings    = 1 << 0,
-  kUVCTypeScanFlagShowInfo        = 1 << 1
+    kUVCTypeScanFlagShowWarnings = 1 << 0,
+    kUVCTypeScanFlagShowInfo = 1 << 1
 } UVCTypeScanFlags;
 
 /*!
@@ -92,11 +92,10 @@ typedef enum {
   Methods are also provided to initialize an external buffer structured by a
   UVCType using textual input (from a C string).
 */
-@interface UVCType : NSObject
-{
-  NSUInteger    _fieldCount;
-  BOOL          _needsNoByteSwap;
-  void          *_fields;
+@interface UVCType : NSObject {
+    NSUInteger _fieldCount;
+    BOOL _needsNoByteSwap;
+    void *_fields;
 }
 
 /*!
@@ -135,7 +134,7 @@ typedef enum {
     { S2 pan; S2 tilt; }
     
 */
-+ (UVCType*) uvcTypeWithCString:(const char*)typeDescription;
++ (UVCType *)uvcTypeWithCString:(const char *)typeDescription;
 
 /*!
   @method uvcTypeWithFieldNamesAndTypes:
@@ -146,7 +145,7 @@ typedef enum {
     [uvcTypeWithFieldNamesAndTypes:@"pan", kUVCTypeComponentTypeSInt16, @"tilt", kUVCTypeComponentTypeSInt16, nil];
 
 */
-+ (UVCType*) uvcTypeWithFieldNamesAndTypes:(NSString*)name,...;
++ (UVCType *)uvcTypeWithFieldNamesAndTypes:(NSString *)name, ...;
 
 /*!
   @method uvcTypeWithFieldCount:names:types:
@@ -155,14 +154,14 @@ typedef enum {
   field names (as NSString instances) and types.  The arrays must have at least count elements
   present.
 */
-+ (UVCType*) uvcTypeWithFieldCount:(NSUInteger)count names:(NSString**)names types:(UVCTypeComponentType*)types;
++ (UVCType *)uvcTypeWithFieldCount:(NSUInteger)count names:(NSString **)names types:(UVCTypeComponentType *)types;
 
 /*!
   @method fieldCount
   
   Returns the number of component fields in the structure represented by the receiver.
 */
-- (NSUInteger) fieldCount;
+- (NSUInteger)fieldCount;
 
 /*!
   @method fieldNameAtIndex:
@@ -171,7 +170,7 @@ typedef enum {
   
   Returns nil if index is out of range.
 */
-- (NSString*) fieldNameAtIndex:(NSUInteger)index;
+- (NSString *)fieldNameAtIndex:(NSUInteger)index;
 
 /*!
   @method fieldTypeAtIndex:
@@ -180,7 +179,7 @@ typedef enum {
   
   Returns kUVCTypeComponentTypeInvalid if index is out of range.
 */
-- (UVCTypeComponentType) fieldTypeAtIndex:(NSUInteger)index;
+- (UVCTypeComponentType)fieldTypeAtIndex:(NSUInteger)index;
 
 /*!
   @method indexOfFieldWithName:
@@ -188,7 +187,7 @@ typedef enum {
   If one of the receiver's component fields is named the same as fieldName (under a case-insensitive
   string comparison) returns the index of that field.  Otherwise, UVCTypeInvalidIndex is returned.
 */
-- (NSUInteger) indexOfFieldWithName:(NSString*)fieldName;
+- (NSUInteger)indexOfFieldWithName:(NSString *)fieldName;
 
 /*!
   @method byteSize
@@ -196,7 +195,7 @@ typedef enum {
   Returns the number of bytes that data structured according to the receiver's component field
   types would occupy.
 */
-- (NSUInteger) byteSize;
+- (NSUInteger)byteSize;
 
 /*!
   @method offsetToFieldAtIndex:
@@ -206,7 +205,7 @@ typedef enum {
   
   Returns UVCTypeInvalidIndex if index is out of range.
 */
-- (NSUInteger) offsetToFieldAtIndex:(NSUInteger)index;
+- (NSUInteger)offsetToFieldAtIndex:(NSUInteger)index;
 
 /*!
   @method offsetToFieldWithName:
@@ -217,7 +216,7 @@ typedef enum {
   
   Returns UVCTypeInvalidIndex if index is out of range.
 */
-- (NSUInteger) offsetToFieldWithName:(NSString*)fieldName;
+- (NSUInteger)offsetToFieldWithName:(NSString *)fieldName;
 
 /*!
   @method byteSwapHostToUSBEndian:
@@ -226,7 +225,7 @@ typedef enum {
   byte swap all necessary component fields (anything larger than 1 byte) from the host endian
   to USB (little) endian.
 */
-- (void) byteSwapHostToUSBEndian:(void*)buffer;
+- (void)byteSwapHostToUSBEndian:(void *)buffer;
 
 /*!
   @method byteSwapUSBToHostEndian:
@@ -235,7 +234,7 @@ typedef enum {
   byte swap all necessary component fields (anything larger than 1 byte) from USB (little)
   endian to host endian.
 */
-- (void) byteSwapUSBToHostEndian:(void*)buffer;
+- (void)byteSwapUSBToHostEndian:(void *)buffer;
 
 /*!
   @method scanCString:intoBuffer:flags:
@@ -244,7 +243,7 @@ typedef enum {
   
     [self scanCString:cString intoBuffer:buffer flags:flags minimum:NULL maximum:NULL stepSize:NULL defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString intoBuffer:(void*)buffer flags:(UVCTypeScanFlags)flags;
+- (BOOL)scanCString:(const char *)cString intoBuffer:(void *)buffer flags:(UVCTypeScanFlags)flags;
 
 /*!
   @method scanCString:intoBuffer:flags:minimum:maximum:
@@ -253,7 +252,11 @@ typedef enum {
   
     [self scanCString:cString intoBuffer:buffer flags:flags minimum:minimum maximum:maximum stepSize:NULL defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString intoBuffer:(void*)buffer flags:(UVCTypeScanFlags)flags minimum:(void*)minimum maximum:(void*)maximum;
+- (BOOL)scanCString:(const char *)cString
+         intoBuffer:(void *)buffer
+              flags:(UVCTypeScanFlags)flags
+            minimum:(void *)minimum
+            maximum:(void *)maximum;
 
 /*!
   @method scanCString:intoBuffer:flags:minimum:maximum:stepSize:
@@ -262,7 +265,12 @@ typedef enum {
   
     [self scanCString:cString intoBuffer:buffer flags:flags minimum:minimum maximum:maximum stepSize:stepSize defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString intoBuffer:(void*)buffer flags:(UVCTypeScanFlags)flags minimum:(void*)minimum maximum:(void*)maximum stepSize:(void*)stepSize;
+- (BOOL)scanCString:(const char *)cString
+         intoBuffer:(void *)buffer
+              flags:(UVCTypeScanFlags)flags
+            minimum:(void *)minimum
+            maximum:(void *)maximum
+           stepSize:(void *)stepSize;
 
 /*!
   @method scanCString:intoBuffer:flags:minimum:maximum:stepSize:defaultValue:
@@ -303,7 +311,13 @@ typedef enum {
     {S2 w; S2 h;}   "{default,minimum}" (same as previous)
 
 */
-- (BOOL) scanCString:(const char*)cString intoBuffer:(void*)buffer flags:(UVCTypeScanFlags)flags minimum:(void*)minimum maximum:(void*)maximum stepSize:(void*)stepSize defaultValue:(void*)defaultValue;
+- (BOOL)scanCString:(const char *)cString
+         intoBuffer:(void *)buffer
+              flags:(UVCTypeScanFlags)flags
+            minimum:(void *)minimum
+            maximum:(void *)maximum
+           stepSize:(void *)stepSize
+       defaultValue:(void *)defaultValue;
 
 /*!
   @method stringFromBuffer:
@@ -314,7 +328,7 @@ typedef enum {
     "{pan=3600,tilt=-360000}"
     
 */
-- (NSString*) stringFromBuffer:(void*)buffer;
+- (NSString *)stringFromBuffer:(void *)buffer;
 
 /*!
   @method jsonObjectFromBuffer:
@@ -322,20 +336,20 @@ typedef enum {
   Create a JSON-compatible object (NSNumber or NSDictionary) representing the data in the external
   buffer structured according to the receiver's component field types.
 */
-- (id) jsonObjectFromBuffer:(void*)buffer;
+- (id)jsonObjectFromBuffer:(void *)buffer;
 
 /*!
   @method typeSummaryString
   
   Returns a human-readable description of the receiver's component field types.
 */
-- (NSString*) typeSummaryString;
+- (NSString *)typeSummaryString;
 
 /*!
   @method typeSummaryDictionary
   
   Returns a dictionary description of the receiver's component field types.
 */
-- (NSDictionary*) typeSummaryDictionary;
+- (NSDictionary *)typeSummaryDictionary;
 
 @end

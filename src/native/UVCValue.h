@@ -24,11 +24,10 @@
   lack the specification of an external buffer (since UVCValue itself contains
   the buffer in question).
 */
-@interface UVCValue : NSObject
-{
-  BOOL                _isSwappedToUSBEndian;
-  UVCType             *_valueType;
-  void                *_valuePtr;
+@interface UVCValue : NSObject {
+    BOOL _isSwappedToUSBEndian;
+    UVCType *_valueType;
+    void *_valuePtr;
 }
 
 /*!
@@ -38,7 +37,7 @@
   according to [valueType byteSize] and uses valueType as its structural
   meta-data.
 */
-+ (UVCValue*) uvcValueWithType:(UVCType*)valueType;
++ (UVCValue *)uvcValueWithType:(UVCType *)valueType;
 
 /*!
   @method valueType
@@ -46,7 +45,7 @@
   Returns the UVCType that acts as the structural meta-data for the
   receiver.
 */
-- (UVCType*) valueType;
+- (UVCType *)valueType;
 
 /*!
   @method valuePtr
@@ -54,14 +53,14 @@
   Returns the base address of the receiver's memory buffer (where data
   structured according to the valueType should be stored).
 */
-- (void*) valuePtr;
+- (void *)valuePtr;
 
 /*!
   @method byteSize
   
   Returns the number of bytes occupied by the receiver's valueType.
 */
-- (NSUInteger) byteSize;
+- (NSUInteger)byteSize;
 
 /*!
   @method pointerToFieldAtIndex:
@@ -71,7 +70,7 @@
   
   Returns NULL if index is out of range.
 */
-- (void*) pointerToFieldAtIndex:(NSUInteger)index;
+- (void *)pointerToFieldAtIndex:(NSUInteger)index;
 
 /*!
   @method pointerToFieldWithName:
@@ -81,7 +80,7 @@
   
   Returns NULL if index is out of range.
 */
-- (void*) pointerToFieldWithName:(NSString*)fieldName;
+- (void *)pointerToFieldWithName:(NSString *)fieldName;
 
 /*!
   @method isSwappedToUSBEndian
@@ -89,7 +88,7 @@
   Returns YES if the receiver's memory buffer has been byte-swapped to USB
   (little) endian.
 */
-- (BOOL) isSwappedToUSBEndian;
+- (BOOL)isSwappedToUSBEndian;
 
 /*!
   @method byteSwapHostToUSBEndian
@@ -98,7 +97,7 @@
   component fields of the receiver's memory buffer (anything larger than 1
   byte) from the host endian to USB (little) endian.
 */
-- (void) byteSwapHostToUSBEndian;
+- (void)byteSwapHostToUSBEndian;
 
 /*!
   @method byteSwapUSBToHostEndian:
@@ -107,7 +106,7 @@
   swap all necessary component fields of the receiver's memory buffer
   (anything larger than 1 byte) from USB (little) endian to host endian.
 */
-- (void) byteSwapUSBToHostEndian;
+- (void)byteSwapUSBToHostEndian;
 
 /*!
   @method scanCString:flags:
@@ -116,7 +115,7 @@
   
     [self scanCString:cString flags:flags minimum:NULL maximum:NULL stepSize:NULL defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString flags:(UVCTypeScanFlags)flags;
+- (BOOL)scanCString:(const char *)cString flags:(UVCTypeScanFlags)flags;
 
 /*!
   @method scanCString:flags:minimum:maximum:
@@ -125,7 +124,10 @@
   
     [self scanCString:cString flags:flags minimum:minimum maximum:maximum stepSize:NULL defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString flags:(UVCTypeScanFlags)flags minimum:(UVCValue*)minimum maximum:(UVCValue*)maximum;
+- (BOOL)scanCString:(const char *)cString
+              flags:(UVCTypeScanFlags)flags
+            minimum:(UVCValue *)minimum
+            maximum:(UVCValue *)maximum;
 
 /*!
   @method scanCString:flags:minimum:maximum:stepSize:
@@ -134,7 +136,11 @@
   
     [self scanCString:cString flags:flags minimum:minimum maximum:maximum stepSize:stepSize defaultValue:NULL]
 */
-- (BOOL) scanCString:(const char*)cString flags:(UVCTypeScanFlags)flags minimum:(UVCValue*)minimum maximum:(UVCValue*)maximum stepSize:(UVCValue*)stepSize;
+- (BOOL)scanCString:(const char *)cString
+              flags:(UVCTypeScanFlags)flags
+            minimum:(UVCValue *)minimum
+            maximum:(UVCValue *)maximum
+           stepSize:(UVCValue *)stepSize;
 
 /*!
   @method scanCString:flags:minimum:maximum:stepSize:defaultValue:
@@ -148,7 +154,12 @@
   Returns YES if all component fields of the receiver's memory buffer were
   successfully set.
 */
-- (BOOL) scanCString:(const char*)cString flags:(UVCTypeScanFlags)flags minimum:(UVCValue*)minimum maximum:(UVCValue*)maximum stepSize:(UVCValue*)stepSize defaultValue:(UVCValue*)defaultValue;
+- (BOOL)scanCString:(const char *)cString
+              flags:(UVCTypeScanFlags)flags
+            minimum:(UVCValue *)minimum
+            maximum:(UVCValue *)maximum
+           stepSize:(UVCValue *)stepSize
+       defaultValue:(UVCValue *)defaultValue;
 
 /*!
   @method stringValue
@@ -161,14 +172,14 @@
     "{pan=3600,tilt=-360000}"
     
 */
-- (NSString*) stringValue;
+- (NSString *)stringValue;
 
 /*!
   @method jsonObject
   
   Returns a JSON-compatible object (NSNumber or NSDictionary) representing the receiver's data.
 */
-- (id) jsonObject;
+- (id)jsonObject;
 
 /*!
   @method copyValue:
@@ -177,6 +188,6 @@
   types) then the requisite number of bytes from [otherValue valuePtr] are copied
   to the receiver's memory buffer.
 */
-- (BOOL) copyValue:(UVCValue*)otherValue;
+- (BOOL)copyValue:(UVCValue *)otherValue;
 
 @end
