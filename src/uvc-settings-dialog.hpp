@@ -21,12 +21,18 @@ public:
 private slots:
 	void RefreshDeviceList();
 	void SaveAndClose();
-	void AppendLog(const std::string &message);
+	void AppendLog(const QString &message);
 
 private:
 	void SetupUI();
 	
 	QVBoxLayout *deviceListLayout;
 	QTextEdit *logConsole;
-	std::vector<std::pair<UvcDevicePtr, QCheckBox*>> deviceWidgets;
+	struct DeviceWidget {
+		UvcDevicePtr dev;
+		QCheckBox *enabled;
+		QLineEdit *alias;
+	};
+	std::vector<DeviceWidget> deviceWidgets;
+	QCheckBox *startWithObsCb;
 };

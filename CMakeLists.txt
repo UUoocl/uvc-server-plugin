@@ -4,7 +4,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 set(CMAKE_FRAMEWORK_PATH ${CMAKE_FRAMEWORK_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/Frameworks")
 
-project(uvc-server-plugin VERSION ${_version})
+project(uvc-server VERSION ${_version})
 
 if(APPLE)
   add_link_options("-F${CMAKE_CURRENT_SOURCE_DIR}/Frameworks")
@@ -17,6 +17,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" ON)
 option(ENABLE_QT "Use Qt functionality" ON)
 
+set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 include(compilerconfig)
 include(defaults)
 include(helpers)
@@ -48,41 +49,45 @@ endif()
 include(FetchContent)
 
 # libusb
-FetchContent_Declare(
-  libusb
-  GIT_REPOSITORY https://github.com/libusb/libusb.git
-  GIT_TAG v1.0.27
-)
-set(LIBUSB_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(LIBUSB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(libusb)
+# FetchContent_Declare(
+#   libusb
+#   GIT_REPOSITORY https://github.com/libusb/libusb.git
+#   GIT_TAG v1.0.27
+# )
+# set(LIBUSB_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+# set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+# set(LIBUSB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+# FetchContent_MakeAvailable(libusb)
 
-# libuvc
-FetchContent_Declare(
-  libuvc
-  GIT_REPOSITORY https://github.com/libuvc/libuvc.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(libuvc)
+# Native macOS UVC implementation
+if(APPLE)
+  set(NATIVE_SOURCES
+    src/native/UVCController.m
+    src/native/UVCType.m
+    src/native/UVCValue.m
+    src/native/uvc_native.m
+  )
+  set_source_files_properties(${NATIVE_SOURCES} PROPERTIES COMPILE_FLAGS "-fno-objc-arc")
+endif()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE 
   src/plugin-main.cpp
   src/uvc-manager.cpp
   src/uvc-settings-dialog.cpp
   src/thirdparty/mongoose.c
+  ${NATIVE_SOURCES}
 )
-
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE libuvc::uvc usb-1.0)
 
 if(APPLE)
   find_library(IOKIT_LIBRARY IOKit)
   find_library(COREAUDIO_LIBRARY CoreAudio)
   find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+  find_library(FOUNDATION_LIBRARY Foundation)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE 
     ${IOKIT_LIBRARY} 
     ${COREAUDIO_LIBRARY} 
     ${COREFOUNDATION_LIBRARY}
+    ${FOUNDATION_LIBRARY}
   )
 endif()
 

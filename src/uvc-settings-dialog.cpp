@@ -4,11 +4,12 @@
 
 UvcSettingsDialog::UvcSettingsDialog(QWidget *parent) : QDialog(parent)
 {
+	blog(LOG_INFO, "[UVC Server] Settings dialog opening");
 	SetupUI();
 	RefreshDeviceList();
 	
 	GetUvcManager().logCallback = [this](const std::string &msg) {
-		QMetaObject::invokeMethod(this, "AppendLog", Qt::QueuedConnection, Q_ARG(std::string, msg));
+		QMetaObject::invokeMethod(this, "AppendLog", Qt::QueuedConnection, Q_ARG(QString, QString::fromStdString(msg)));
 	};
 }
 
@@ -42,6 +43,10 @@ void UvcSettingsDialog::SetupUI()
 	groupLayout->addWidget(refreshBtn);
 	
 	mainLayout->addWidget(deviceGroup);
+	
+	startWithObsCb = new QCheckBox("Start with OBS (Automatically enable saved cameras)", this);
+	startWithObsCb->setChecked(GetUvcManager().ShouldStartWithObs());
+	mainLayout->addWidget(startWithObsCb);
 
 	// Log Console
 	QGroupBox *logGroup = new QGroupBox("Activity Log", this);
@@ -77,31 +82,54 @@ void UvcSettingsDialog::RefreshDeviceList()
 		QWidget *row = new QWidget();
 		QHBoxLayout *rowLayout = new QHBoxLayout(row);
 		
-		QCheckBox *cb = new QCheckBox(QString::fromStdString(dev->name), row);
+		QCheckBox *cb = new QCheckBox("Enabled", row);
 		cb->setChecked(dev->enabled);
 		
+		QLabel *nameLabel = new QLabel(QString::fromStdString(dev->name), row);
+		nameLabel->setMinimumWidth(200);
+		nameLabel->setStyleSheet("font-weight: bold;");
+
+		QLineEdit *aliasEdit = new QLineEdit(QString::fromStdString(dev->user_name), row);
+		aliasEdit->setPlaceholderText("Alias (Optional)");
+		aliasEdit->setFixedWidth(150);
+
 		QLabel *info = new QLabel(QString("VID:%1 PID:%2").arg(dev->vendor_id, 4, 16, QChar('0')).arg(dev->product_id, 4, 16, QChar('0')), row);
 		info->setStyleSheet("color: gray;");
 		
 		rowLayout->addWidget(cb);
+		rowLayout->addWidget(nameLabel);
+		rowLayout->addWidget(aliasEdit);
 		rowLayout->addStretch();
 		rowLayout->addWidget(info);
 		
 		deviceListLayout->addWidget(row);
-		deviceWidgets.push_back({dev, cb});
+
+		DeviceWidget dw;
+		dw.dev = dev;
+		dw.enabled = cb;
+		dw.alias = aliasEdit;
+		deviceWidgets.push_back(dw);
+
+		// Immediate logging and activation for UX feedback
+		connect(cb, &QCheckBox::toggled, [dev](bool checked) {
+			blog(LOG_INFO, "[UVC Server] enabled pressed, broadcasting device setting for '%s'...", dev->name.c_str());
+			GetUvcManager().SetDeviceEnabled(dev->name, checked);
+		});
 	}
 }
 
 void UvcSettingsDialog::SaveAndClose()
 {
-	for (auto &pair : deviceWidgets) {
-		GetUvcManager().SetDeviceEnabled(pair.first->name, pair.second->isChecked());
+	for (auto &dw : deviceWidgets) {
+		dw.dev->user_name = dw.alias->text().toStdString();
+		GetUvcManager().SetDeviceEnabled(dw.dev->name, dw.enabled->isChecked());
 	}
+	GetUvcManager().SetStartWithObs(startWithObsCb->isChecked());
 	GetUvcManager().SaveConfig();
 	accept();
 }
 
-void UvcSettingsDialog::AppendLog(const std::string &message)
+void UvcSettingsDialog::AppendLog(const QString &message)
 {
-	logConsole->append(QString::fromStdString(message));
+	logConsole->append(message);
 }

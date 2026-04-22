@@ -158,7 +158,10 @@
 <body>
     <header>
         <h1>UVC MONITOR</h1>
-        <div id="connectionStatus" class="status-badge status-disconnected">DISCONNECTED</div>
+        <div class="status-group">
+            <div class="status-badge status-disconnected" id="connectionStatus">DISCONNECTED</div>
+            <div class="status-badge status-disconnected" id="gamepadStatus">NO GAMEPAD</div>
+        </div>
     </header>
 
     <div class="container">
@@ -182,18 +185,19 @@
         <!-- Control Panel -->
         <div class="card">
             <h2>PTZ Control</h2>
-            <div class="ptz-grid">
-                <div></div>
-                <button class="ptz-btn" onmousedown="move('up')">▲</button>
-                <div></div>
-                
-                <button class="ptz-btn" onmousedown="move('left')">◀</button>
-                <button class="ptz-btn" style="background-color: #475569;">●</button>
-                <button class="ptz-btn" onmousedown="move('right')">▶</button>
-                
-                <div></div>
-                <button class="ptz-btn" onmousedown="move('down')">▼</button>
-                <div></div>
+            <div class="slider-group" style="margin-top: 0;">
+                <div class="slider-label">
+                    <span>Pan</span>
+                    <span id="panValue">0</span>
+                </div>
+                <input type="range" id="panSlider" min="-1000" max="1000" value="0" oninput="updatePTZ()">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Tilt</span>
+                    <span id="tiltValue">0</span>
+                </div>
+                <input type="range" id="tiltSlider" min="-1000" max="1000" value="0" oninput="updatePTZ()">
             </div>
 
             <div class="slider-group">
@@ -221,12 +225,21 @@
 
         async function discover() {
             try {
-                const response = await fetch('http://localhost:12348/api/config');
-                const config = await response.json();
-                if (config.websocket_port) {
-                    port = config.websocket_port;
-                    connect();
+                // Try discovery on default bridge ports
+                const ports = [4466, 4467, 4468]; // Scan a few ports just in case
+                for (const p of ports) {
+                    try {
+                        const response = await fetch(`http://127.0.0.1:${p}/__lws/ws_port`);
+                        if (response.ok) {
+                            const wsPort = await response.text();
+                            port = parseInt(wsPort.trim());
+                            console.log(`Discovered WebSocket port: ${port} via HTTP port: ${p}`);
+                            connect();
+                            return;
+                        }
+                    } catch (e) {}
                 }
+                throw new Error("No bridge found");
             } catch (e) {
                 console.log("Discovery failed, retrying in 2s...");
                 setTimeout(discover, 2000);
@@ -234,7 +247,8 @@
         }
 
         function connect() {
-            ws = new WebSocket(`ws://localhost:${port}`);
+            console.log(`Connecting to ws://127.0.0.1:${port}/ws ...`);
+            ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
 
             ws.onopen = () => {
                 document.getElementById('connectionStatus').textContent = 'CONNECTED';
@@ -253,8 +267,47 @@
                 const msg = JSON.parse(event.data);
                 if (msg.a === 'uvc_status') {
                     handleStatus(msg);
+                } else if (msg.a === 'uvc_capabilities') {
+                    handleCapabilities(msg);
                 }
             };
+        }
+
+        function handleCapabilities(msg) {
+            console.log("Received capabilities for", msg.device, msg.controls);
+            const controls = msg.controls;
+            
+            // Find zoom-abs
+            const zoomControl = controls.find(c => c.name === 'zoom-abs');
+            if (zoomControl && zoomControl.minimum !== undefined) {
+                const slider = document.getElementById('zoomSlider');
+                slider.min = zoomControl.minimum;
+                slider.max = zoomControl.maximum;
+                console.log(`Updated Zoom range: ${slider.min} - ${slider.max}`);
+            }
+
+            // Find pan-tilt-abs
+            const ptControl = controls.find(c => c.name === 'pan-tilt-abs');
+            if (ptControl) {
+                const panSlider = document.getElementById('panSlider');
+                const tiltSlider = document.getElementById('tiltSlider');
+                
+                if (ptControl.minimum && ptControl.minimum.pan !== undefined) {
+                    panSlider.min = ptControl.minimum.pan;
+                    panSlider.max = ptControl.maximum.pan;
+                    tiltSlider.min = ptControl.minimum.tilt;
+                    tiltSlider.max = ptControl.maximum.tilt;
+                } else if (Array.isArray(ptControl.minimum)) {
+                    panSlider.min = ptControl.minimum[0];
+                    panSlider.max = ptControl.maximum[0];
+                    tiltSlider.min = ptControl.minimum[1];
+                    tiltSlider.max = ptControl.maximum[1];
+                }
+                console.log(`Updated PTZ range: Pan(${panSlider.min}:${panSlider.max}) Tilt(${tiltSlider.min}:${tiltSlider.max})`);
+            }
+
+            // Send Sync Ack
+            send({ a: 'uvc_sync_ack', device: msg.device });
         }
 
         function handleStatus(msg) {
@@ -270,10 +323,18 @@
                 document.getElementById('statTilt').textContent = msg.status.tilt;
                 document.getElementById('statZoom').textContent = msg.status.zoom;
                 
-                // Update zoom slider if not being dragged
+                // Update sliders if not being dragged
                 if (!document.getElementById('zoomSlider').matches(':active')) {
                     document.getElementById('zoomSlider').value = msg.status.zoom;
                     document.getElementById('zoomValue').textContent = msg.status.zoom;
+                }
+                if (!document.getElementById('panSlider').matches(':active')) {
+                    document.getElementById('panSlider').value = msg.status.pan;
+                    document.getElementById('panValue').textContent = msg.status.pan;
+                }
+                if (!document.getElementById('tiltSlider').matches(':active')) {
+                    document.getElementById('tiltSlider').value = msg.status.tilt;
+                    document.getElementById('tiltValue').textContent = msg.status.tilt;
                 }
             }
         }
@@ -287,7 +348,7 @@
                 item.className = `device-item ${selectedDevice === name ? 'active' : ''}`;
                 item.innerHTML = `
                     <div class="device-name">${name}</div>
-                    <div class="device-info">Streaming property data</div>
+                    <div class="device-info">Active</div>
                 `;
                 item.onclick = () => {
                     selectedDevice = name;
@@ -303,17 +364,12 @@
             }
         }
 
-        function move(dir) {
+        function updatePTZ() {
             if (!selectedDevice) return;
-            let pan = devices[selectedDevice]?.pan || 0;
-            let tilt = devices[selectedDevice]?.tilt || 0;
-            
-            const step = 500;
-            if (dir === 'up') tilt += step;
-            if (dir === 'down') tilt -= step;
-            if (dir === 'left') pan -= step;
-            if (dir === 'right') pan += step;
-
+            const pan = parseInt(document.getElementById('panSlider').value);
+            const tilt = parseInt(document.getElementById('tiltSlider').value);
+            document.getElementById('panValue').textContent = pan;
+            document.getElementById('tiltValue').textContent = tilt;
             send({
                 a: 'uvc_set_ptz',
                 device: selectedDevice,
@@ -347,6 +403,101 @@
                 fps: val
             });
         }
+
+        // Gamepad Support
+        let lastGamepadUpdate = 0;
+        const GAMEPAD_POLL_MS = 50; // Update 20 times per second
+        const DEADZONE = 0.15;
+
+        function pollGamepad() {
+            const gamepads = navigator.getGamepads();
+            let gp = null;
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) {
+                    gp = gamepads[i];
+                    break;
+                }
+            }
+
+            const status = document.getElementById('gamepadStatus');
+            if (gp) {
+                status.textContent = 'GAMEPAD: ' + gp.id.substring(0, 15) + '...';
+                status.className = 'status-badge status-connected';
+            } else {
+                status.textContent = 'NO GAMEPAD';
+                status.className = 'status-badge status-disconnected';
+                requestAnimationFrame(pollGamepad);
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastGamepadUpdate < GAMEPAD_POLL_MS) {
+                requestAnimationFrame(pollGamepad);
+                return;
+            }
+
+            let changed = false;
+            const panSlider = document.getElementById('panSlider');
+            const tiltSlider = document.getElementById('tiltSlider');
+            const zoomSlider = document.getElementById('zoomSlider');
+
+            // Dynamic sensitivity: move ~5% of range per poll at full tilt
+            const panRange = (panSlider.max - panSlider.min) || 100;
+            const tiltRange = (tiltSlider.max - tiltSlider.min) || 100;
+            const zoomRange = (zoomSlider.max - zoomSlider.min) || 100;
+            
+            const stickSens = 0.05; 
+            const zoomSens = 0.05;
+
+            // Pan/Tilt (Left Stick)
+            const axisX = gp.axes[0];
+            const axisY = gp.axes[1];
+            
+            if (Math.abs(axisX) > DEADZONE || Math.abs(axisY) > DEADZONE) {
+                if (Math.abs(axisX) > DEADZONE) {
+                    let delta = axisX * panRange * stickSens;
+                    let newVal = parseInt(panSlider.value) + delta;
+                    panSlider.value = Math.max(panSlider.min, Math.min(panSlider.max, newVal));
+                }
+                
+                if (Math.abs(axisY) > DEADZONE) {
+                    // Invert Y for intuitive tilt (up is up)
+                    let delta = -axisY * tiltRange * stickSens;
+                    let newVal = parseInt(tiltSlider.value) + delta;
+                    tiltSlider.value = Math.max(tiltSlider.min, Math.min(tiltSlider.max, newVal));
+                }
+                
+                updatePTZ();
+                changed = true;
+            }
+
+            // Zoom (Triggers - L2/R2)
+            const zoomIn = gp.buttons[7].value; // R2
+            const zoomOut = gp.buttons[6].value; // L2
+            
+            if (zoomIn > 0.1 || zoomOut > 0.1) {
+                let delta = (zoomIn - zoomOut) * zoomRange * zoomSens;
+                let newVal = parseInt(zoomSlider.value) + delta;
+                zoomSlider.value = Math.max(zoomSlider.min, Math.min(zoomSlider.max, newVal));
+                
+                document.getElementById('zoomValue').textContent = parseInt(zoomSlider.value);
+                send({
+                    a: 'uvc_set_zoom',
+                    device: selectedDevice,
+                    zoom: parseInt(zoomSlider.value)
+                });
+                changed = true;
+            }
+
+            if (changed) {
+                lastGamepadUpdate = now;
+            }
+            
+            requestAnimationFrame(pollGamepad);
+        }
+
+        // Start gamepad polling
+        requestAnimationFrame(pollGamepad);
 
         discover();
     </script>

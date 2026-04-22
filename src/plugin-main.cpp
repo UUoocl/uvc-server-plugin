@@ -13,23 +13,16 @@ OBS_MODULE_USE_DEFAULT_LOCALE("uvc-server", "en-US")
 
 static QPointer<UvcSettingsDialog> settingsDialog;
 
-// Bridge UVC Status to WebSocket Bridge
-void HandleStatusToBridge(const std::string &deviceName, const std::string &jsonPayload)
+// Bridge UVC messages to WebSocket Bridge
+void HandleMessageToBridge(obs_data_t *packet)
 {
-	obs_data_t *packet = obs_data_create();
-	obs_data_set_string(packet, "a", "uvc_status");
-	obs_data_set_string(packet, "device", deviceName.c_str());
-	
-	obs_data_t *statusData = obs_data_create_from_json(jsonPayload.c_str());
-	obs_data_set_obj(packet, "status", statusData);
-	obs_data_release(statusData);
-
 	signal_handler_t *sh = obs_get_signal_handler();
 	calldata_t cd = {0};
 	calldata_set_ptr(&cd, "packet", packet);
 	signal_handler_signal(sh, "media_warp_transmit", &cd);
 	calldata_free(&cd);
-	obs_data_release(packet);
+	
+	// blog(LOG_DEBUG, "[UVC Server] Signal 'media_warp_transmit' emitted");
 }
 
 // Handle Inbound from Bridge
@@ -48,14 +41,20 @@ static void on_media_warp_receive(void *data, calldata_t *cd)
 			const char *deviceName = obs_data_get_string(msg, "device");
 			int pan = (int)obs_data_get_int(msg, "pan");
 			int tilt = (int)obs_data_get_int(msg, "tilt");
+			blog(LOG_INFO, "[UVC Server] Inbound PTZ: %s -> %d, %d", deviceName ? deviceName : "null", pan, tilt);
 			if (deviceName) GetUvcManager().SetPanTilt(deviceName, pan, tilt);
 		} else if (strcmp(a, "uvc_set_zoom") == 0) {
 			const char *deviceName = obs_data_get_string(msg, "device");
 			int zoom = (int)obs_data_get_int(msg, "zoom");
+			blog(LOG_INFO, "[UVC Server] Inbound Zoom: %s -> %d", deviceName ? deviceName : "null", zoom);
 			if (deviceName) GetUvcManager().SetZoom(deviceName, zoom);
 		} else if (strcmp(a, "uvc_set_polling") == 0) {
 			int fps = (int)obs_data_get_int(msg, "fps");
+			blog(LOG_INFO, "[UVC Server] Inbound Polling: %d FPS", fps);
 			GetUvcManager().SetPollingRate(fps);
+		} else if (strcmp(a, "uvc_sync_ack") == 0) {
+			const char *deviceName = obs_data_get_string(msg, "device");
+			if (deviceName) GetUvcManager().SyncAck(deviceName);
 		}
 	}
 
@@ -68,7 +67,7 @@ bool obs_module_load(void)
 
 	auto &mgr = GetUvcManager();
 	mgr.LoadConfig();
-	mgr.statusCallback = HandleStatusToBridge;
+	mgr.messageCallback = HandleMessageToBridge;
 
 	// Connect to bridge signals
 	signal_handler_t *sh = obs_get_signal_handler();

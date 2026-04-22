@@ -9,7 +9,6 @@
 #include <map>
 #include <atomic>
 #include <thread>
-#include "libuvc/libuvc.h"
 
 struct UvcDevice {
 	std::string name;
@@ -19,9 +18,10 @@ struct UvcDevice {
 	int product_id = 0;
 	bool enabled = false;
 	
-	// Internal handles
-	uvc_device_t *dev = nullptr;
-	uvc_device_handle_t *devh = nullptr;
+	// Internal identifier for native lib
+	unsigned int nativeIndex = 0;
+	bool isOpened = false;
+	bool sync_pending = false;
 };
 
 using UvcDevicePtr = std::shared_ptr<UvcDevice>;
@@ -41,6 +41,8 @@ public:
 	// PTZ Control
 	void SetPanTilt(const std::string &deviceName, int pan, int tilt);
 	void SetZoom(const std::string &deviceName, int zoom);
+	void BroadcastCapabilities(const std::string &deviceName);
+	void SyncAck(const std::string &deviceName);
 	
 	// Polling control
 	void SetPollingRate(int fps);
@@ -48,15 +50,17 @@ public:
 	bool IsLoggingEnabled() const { return loggingEnabled; }
 	void SetLoggingEnabled(bool enabled) { loggingEnabled = enabled; }
 	
+	bool ShouldStartWithObs() const { return startWithObs; }
+	void SetStartWithObs(bool enabled) { startWithObs = enabled; }
+
 	std::function<void(const std::string &)> logCallback;
-	std::function<void(const std::string &deviceName, const std::string &jsonPayload)> statusCallback;
+	std::function<void(obs_data_t *packet)> messageCallback;
 
 private:
 	void OpenDevice(UvcDevicePtr device);
 	void CloseDevice(UvcDevicePtr device);
 	void PollingLoop();
 
-	uvc_context_t *ctx = nullptr;
 	std::vector<UvcDevicePtr> devices;
 	std::recursive_mutex devicesMutex;
 	
@@ -66,6 +70,7 @@ private:
 	
 	bool loggingEnabled = true;
 	bool logCollapsed = false;
+	bool startWithObs = false;
 };
 
 UvcManager &GetUvcManager();

@@ -33,11 +33,11 @@
     },
     "platformConfig": {
         "macos": {
-            "bundleId": "com.midi-server"
+            "bundleId": "com.uvc-server"
         }
     },
-    "name": "midi-server",
-    "displayName": "MIDI Server",
+    "name": "uvc-server",
+    "displayName": "UVC Server",
     "version": "1.0.0",
     "author": "Your Name Here",
     "website": "https://example.com",
