@@ -253,6 +253,58 @@ void UvcManager::BroadcastCapabilities(const std::string &deviceName)
 	}
 }
 
+void UvcManager::BroadcastStatus(const std::string &deviceName)
+{
+	std::lock_guard<std::recursive_mutex> lock(devicesMutex);
+	for (auto &dev : devices) {
+		if (dev->name == deviceName && dev->isOpened) {
+			uvclib_select_device(dev->nativeIndex);
+
+			const char *ptRaw = uvclib_get_value("pan-tilt-abs");
+			std::string ptJson = ptRaw ? ptRaw : "";
+
+			const char *zRaw = uvclib_get_value("zoom-abs");
+			std::string zJson = zRaw ? zRaw : "";
+
+			if (messageCallback && (!ptJson.empty() || !zJson.empty())) {
+				obs_data_t *payload = obs_data_create();
+				obs_data_set_string(payload, "a", "uvc_status");
+				obs_data_set_string(payload, "device", dev->name.c_str());
+
+				obs_data_t *statusData = obs_data_create();
+
+				if (!ptJson.empty()) {
+					obs_data_t *ptData = obs_data_create_from_json(ptJson.c_str());
+					obs_data_t *ptVal = obs_data_get_obj(ptData, "value");
+					if (ptVal) {
+						obs_data_set_int(statusData, "pan", obs_data_get_int(ptVal, "pan"));
+						obs_data_set_int(statusData, "tilt", obs_data_get_int(ptVal, "tilt"));
+						obs_data_release(ptVal);
+					}
+					obs_data_release(ptData);
+				}
+
+				if (!zJson.empty()) {
+					obs_data_t *zData = obs_data_create_from_json(zJson.c_str());
+					obs_data_t *zVal = obs_data_get_obj(zData, "value");
+					if (zVal) {
+						obs_data_set_int(statusData, "zoom", obs_data_get_int(zVal, "zoom"));
+						obs_data_release(zVal);
+					}
+					obs_data_release(zData);
+				}
+
+				obs_data_set_obj(payload, "status", statusData);
+				messageCallback(payload);
+
+				obs_data_release(statusData);
+				obs_data_release(payload);
+			}
+			break;
+		}
+	}
+}
+
 void UvcManager::SetZoom(const std::string &deviceName, int zoom)
 {
 	std::lock_guard<std::recursive_mutex> lock(devicesMutex);
@@ -286,6 +338,10 @@ void UvcManager::SetPollingRate(int fps)
 void UvcManager::PollingLoop()
 {
 	while (!stopPolling) {
+		if (!globalEnabled) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			continue;
+		}
 		auto start = std::chrono::steady_clock::now();
 
 		{
@@ -296,49 +352,7 @@ void UvcManager::PollingLoop()
 				if (dev->enabled && dev->isOpened && dev->nativeIndex != 9999) {
 					uvclib_select_device(dev->nativeIndex);
 
-					const char *ptRaw = uvclib_get_value("pan-tilt-abs");
-					std::string ptJson = ptRaw ? ptRaw : "";
-
-					const char *zRaw = uvclib_get_value("zoom-abs");
-					std::string zJson = zRaw ? zRaw : "";
-
-					if (messageCallback && (!ptJson.empty() || !zJson.empty())) {
-						obs_data_t *payload = obs_data_create();
-						obs_data_set_string(payload, "a", "uvc_status");
-						obs_data_set_string(payload, "device", dev->name.c_str());
-
-						obs_data_t *statusData = obs_data_create();
-
-						if (!ptJson.empty()) {
-							obs_data_t *ptData = obs_data_create_from_json(ptJson.c_str());
-							obs_data_t *ptVal = obs_data_get_obj(ptData, "value");
-							if (ptVal) {
-								obs_data_set_int(statusData, "pan",
-										 obs_data_get_int(ptVal, "pan"));
-								obs_data_set_int(statusData, "tilt",
-										 obs_data_get_int(ptVal, "tilt"));
-								obs_data_release(ptVal);
-							}
-							obs_data_release(ptData);
-						}
-
-						if (!zJson.empty()) {
-							obs_data_t *zData = obs_data_create_from_json(zJson.c_str());
-							obs_data_t *zVal = obs_data_get_obj(zData, "value");
-							if (zVal) {
-								obs_data_set_int(statusData, "zoom",
-										 obs_data_get_int(zVal, "zoom"));
-								obs_data_release(zVal);
-							}
-							obs_data_release(zData);
-						}
-
-						obs_data_set_obj(payload, "status", statusData);
-						messageCallback(payload);
-
-						obs_data_release(statusData);
-						obs_data_release(payload);
-					}
+					BroadcastStatus(dev->name);
 					anyPolled = true;
 				}
 			}
@@ -400,6 +414,15 @@ void UvcManager::LoadConfig()
 	}
 
 	startWithObs = obs_data_get_bool(data, "start_with_obs");
+	globalEnabled = obs_data_get_bool(data, "global_enabled");
+	logCollapsed = obs_data_get_bool(data, "log_collapsed");
+	loggingEnabled = obs_data_get_bool(data, "logging_enabled");
+
+	blog(LOG_INFO, "[UVC Server] LoadConfig: startWithObs=%s, globalEnabled=%s, loggingEnabled=%s",
+		startWithObs ? "true" : "false",
+		globalEnabled ? "true" : "false",
+		loggingEnabled ? "true" : "false");
+
 	obs_data_release(data);
 }
 
@@ -409,8 +432,19 @@ void UvcManager::SaveConfig()
 	if (!configPath)
 		return;
 
+	// Ensure directory exists
+	std::string sPath = configPath;
+	size_t lastSlash = sPath.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		std::string dir = sPath.substr(0, lastSlash);
+		os_mkdir(dir.c_str());
+	}
+
 	obs_data_t *data = obs_data_create();
 	obs_data_set_bool(data, "start_with_obs", startWithObs);
+	obs_data_set_bool(data, "global_enabled", globalEnabled);
+	obs_data_set_bool(data, "log_collapsed", logCollapsed);
+	obs_data_set_bool(data, "logging_enabled", loggingEnabled);
 
 	obs_data_array_t *items = obs_data_array_create();
 
@@ -430,7 +464,10 @@ void UvcManager::SaveConfig()
 	obs_data_set_array(data, "devices", items);
 	obs_data_array_release(items);
 
-	obs_data_save_json(data, configPath);
+	if (!obs_data_save_json(data, configPath)) {
+		blog(LOG_ERROR, "[UVC Server] Failed to save config to %s", configPath);
+	}
+	
 	bfree(configPath);
 	obs_data_release(data);
 }

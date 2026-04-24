@@ -42,6 +42,7 @@ public:
 	void SetPanTilt(const std::string &deviceName, int pan, int tilt);
 	void SetZoom(const std::string &deviceName, int zoom);
 	void BroadcastCapabilities(const std::string &deviceName);
+	void BroadcastStatus(const std::string &deviceName);
 	void SyncAck(const std::string &deviceName);
 
 	// Polling control
@@ -52,6 +53,12 @@ public:
 
 	bool ShouldStartWithObs() const { return startWithObs; }
 	void SetStartWithObs(bool enabled) { startWithObs = enabled; }
+
+	bool IsLogCollapsed() const { return logCollapsed; }
+	void SetLogCollapsed(bool collapsed) { logCollapsed = collapsed; }
+
+	bool IsGlobalEnabled() const { return globalEnabled; }
+	void SetGlobalEnabled(bool enabled) { globalEnabled = enabled; }
 
 	std::function<void(const std::string &)> logCallback;
 	std::function<void(obs_data_t *packet)> messageCallback;
@@ -70,6 +77,7 @@ private:
 
 	bool loggingEnabled = true;
 	bool logCollapsed = false;
+	bool globalEnabled = true;
 	bool startWithObs = false;
 };
 

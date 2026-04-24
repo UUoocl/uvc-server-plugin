@@ -223,36 +223,16 @@
         let devices = {};
         let port = 12349; // Default MediaWarp port
 
-        async function discover() {
-            try {
-                // Try discovery on default bridge ports
-                const ports = [4466, 4467, 4468]; // Scan a few ports just in case
-                for (const p of ports) {
-                    try {
-                        const response = await fetch(`http://127.0.0.1:${p}/__lws/ws_port`);
-                        if (response.ok) {
-                            const wsPort = await response.text();
-                            port = parseInt(wsPort.trim());
-                            console.log(`Discovered WebSocket port: ${port} via HTTP port: ${p}`);
-                            connect();
-                            return;
-                        }
-                    } catch (e) {}
-                }
-                throw new Error("No bridge found");
-            } catch (e) {
-                console.log("Discovery failed, retrying in 2s...");
-                setTimeout(discover, 2000);
-            }
-        }
-
         function connect() {
-            console.log(`Connecting to ws://127.0.0.1:${port}/ws ...`);
-            ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+            const port = window.location.port || '4466';
+            console.log(`Connecting to ws://127.0.0.1:${port}/ws/uvc ...`);
+            ws = new WebSocket(`ws://127.0.0.1:${port}/ws/uvc`);
 
             ws.onopen = () => {
                 document.getElementById('connectionStatus').textContent = 'CONNECTED';
                 document.getElementById('connectionStatus').className = 'status-badge status-connected';
+                // Request current capabilities and stats
+                send({ a: 'uvc_get_capabilities' });
                 // Send initial polling rate
                 sendPollingRate();
             };
@@ -260,7 +240,7 @@
             ws.onclose = () => {
                 document.getElementById('connectionStatus').textContent = 'DISCONNECTED';
                 document.getElementById('connectionStatus').className = 'status-badge status-disconnected';
-                setTimeout(discover, 2000);
+                setTimeout(connect, 2000);
             };
 
             ws.onmessage = (event) => {
@@ -499,7 +479,7 @@
         // Start gamepad polling
         requestAnimationFrame(pollGamepad);
 
-        discover();
+        connect();
     </script>
 </body>
 </html>

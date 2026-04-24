@@ -19,10 +19,18 @@ void HandleMessageToBridge(obs_data_t *packet)
 	signal_handler_t *sh = obs_get_signal_handler();
 	calldata_t cd = {0};
 	calldata_set_ptr(&cd, "packet", packet);
-	signal_handler_signal(sh, "media_warp_transmit", &cd);
-	calldata_free(&cd);
 
-	// blog(LOG_DEBUG, "[UVC Server] Signal 'media_warp_transmit' emitted");
+	// 1. Send to general 'uvc' topic
+	obs_data_set_string(packet, "t", "uvc");
+	signal_handler_signal(sh, "media_warp_transmit", &cd);
+
+	// 2. Send to device-specific 'uvc/[device]' topic
+	const char *deviceName = obs_data_get_string(packet, "device");
+	if (deviceName) {
+		std::string topic = "uvc/" + std::string(deviceName);
+		obs_data_set_string(packet, "t", topic.c_str());
+		signal_handler_signal(sh, "media_warp_transmit", &cd);
+	}
 }
 
 // Handle Inbound from Bridge
@@ -61,6 +69,21 @@ static void on_media_warp_receive(void *data, calldata_t *cd)
 			const char *deviceName = obs_data_get_string(msg, "device");
 			if (deviceName)
 				GetUvcManager().SyncAck(deviceName);
+		} else if (strcmp(a, "uvc_get_capabilities") == 0) {
+			const char *deviceName = obs_data_get_string(msg, "device");
+			if (deviceName) {
+				GetUvcManager().BroadcastCapabilities(deviceName);
+				GetUvcManager().BroadcastStatus(deviceName);
+			} else {
+				// Broadcast for all opened devices
+				auto devices = GetUvcManager().GetDevices();
+				for (auto &dev : devices) {
+					if (dev->isOpened) {
+						GetUvcManager().BroadcastCapabilities(dev->name);
+						GetUvcManager().BroadcastStatus(dev->name);
+					}
+				}
+			}
 		}
 	}
 
@@ -72,7 +95,7 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "[UVC Server] Plugin loading...");
 
 	auto &mgr = GetUvcManager();
-	mgr.LoadConfig();
+	mgr.RefreshDevices();
 	mgr.messageCallback = HandleMessageToBridge;
 
 	// Connect to bridge signals
@@ -83,7 +106,11 @@ bool obs_module_load(void)
 	obs_frontend_add_event_callback(
 		[](enum obs_frontend_event event, void * /*param*/) {
 			if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
-				QAction *action = (QAction *)obs_frontend_add_tools_menu_qaction("UVC Server Settings");
+				blog(LOG_INFO, "[UVC Server] OBS ready, performing delayed hardware refresh...");
+				QTimer::singleShot(1000, []() { GetUvcManager().RefreshDevices(); });
+
+				QAction *action = (QAction *)obs_frontend_add_tools_menu_qaction(
+					"UVC Server Settings");
 				QObject::connect(action, &QAction::triggered, []() {
 					if (!settingsDialog) {
 						settingsDialog = new UvcSettingsDialog(
